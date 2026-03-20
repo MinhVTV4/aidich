@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "SavedItem": {
+      "title": "SavedItem",
+      "description": "Automatically saved AI generated content",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who created this item"
+        },
+        "toolType": {
+          "type": "string",
+          "description": "The tool that generated this content (e.g., translator, boardroom)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title or summary of the content"
+        },
+        "content": {
+          "type": "string",
+          "description": "The actual generated content (can be JSON stringified)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "toolType", "title", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles"
+    },
+    "/saved_items/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/SavedItem"
+      },
+      "description": "Saved AI generated items"
+    }
+  }
+}
