@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Users, Bot, User, Sparkles, Play, Square, Plus, Settings2, Search, X, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
+import { Send, Loader2, Users, Bot, User, Sparkles, Play, Square, Plus, Settings2, Search, X, CheckCircle2, AlertCircle, Zap, Timer } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Agent, AGENT_CATALOG, DEFAULT_AGENTS } from '../data/agents';
@@ -27,6 +27,7 @@ export default function AIBoardroom({ isReady, agents, setAgents }: AIBoardroomP
   const [input, setInput] = useState('');
   const [isAutoDebating, setIsAutoDebating] = useState(false);
   const [typingAgent, setTypingAgent] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [showAddAgent, setShowAddAgent] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [addAgentTab, setAddAgentTab] = useState<'catalog' | 'custom'>('catalog');
@@ -43,7 +44,7 @@ export default function AIBoardroom({ isReady, agents, setAgents }: AIBoardroomP
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, typingAgent]);
+  }, [messages, typingAgent, countdown]);
 
   const runAgent = async (agent: Agent | { name: string; role: string; useSearch: boolean; avatar: string }, currentMessages: Message[], isSummarizer = false) => {
     const model = agent.useSearch ? (window as any).geminiSearchModel : (window as any).geminiModel;
@@ -156,7 +157,8 @@ export default function AIBoardroom({ isReady, agents, setAgents }: AIBoardroomP
     const rounds = 2; // 2 rounds per agent
 
     for (let r = 0; r < rounds; r++) {
-      for (const agent of agents) {
+      for (let i = 0; i < agents.length; i++) {
+        const agent = agents[i];
         if (!isAutoDebatingRef.current) break;
         
         setTypingAgent(agent.name);
@@ -184,20 +186,30 @@ export default function AIBoardroom({ isReady, agents, setAgents }: AIBoardroomP
         }
         setTypingAgent(null);
         
-        // Small pause between agents
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Nghỉ 45s giữa mỗi lượt để tránh quá tải API Gemini
+        const isLastAgent = (r === rounds - 1) && (i === agents.length - 1);
+        if (!isLastAgent && isAutoDebatingRef.current) {
+          for (let c = 45; c > 0; c--) {
+            if (!isAutoDebatingRef.current) break;
+            setCountdown(c);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          setCountdown(null);
+        }
       }
       if (!isAutoDebatingRef.current) break;
     }
 
     setIsAutoDebating(false);
     isAutoDebatingRef.current = false;
+    setCountdown(null);
   };
 
   const stopAutoDebate = () => {
     isAutoDebatingRef.current = false;
     setIsAutoDebating(false);
     setTypingAgent(null);
+    setCountdown(null);
   };
 
   const handleSummarize = async () => {
@@ -462,6 +474,20 @@ export default function AIBoardroom({ isReady, agents, setAgents }: AIBoardroomP
                 </div>
                 <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-none px-5 py-3 shadow-sm flex items-center gap-2">
                   <span className="text-gray-500 text-sm font-medium">{typingAgent} đang suy nghĩ và gõ...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Countdown Indicator */}
+            {countdown !== null && isAutoDebating && (
+              <div className="flex gap-4 flex-row">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center shadow-sm">
+                  <Timer size={18} className="text-amber-500 animate-pulse" />
+                </div>
+                <div className="bg-amber-50 border border-amber-100 rounded-2xl rounded-tl-none px-5 py-3 shadow-sm flex items-center gap-2">
+                  <span className="text-amber-700 text-sm font-medium">
+                    Nghỉ giải lao để tránh quá tải API... Tiếp tục sau {countdown}s
+                  </span>
                 </div>
               </div>
             )}
